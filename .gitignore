@@ -8,6 +8,9 @@ tf/
 # dans notes file 
 selfnotes.txt
 
+# visual studio files
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
