@@ -1,0 +1,9 @@
+<!-- This launch file is required because Livox Laser Simulation uses PointCloud
+     as the message type while the rosbag to .pcd file converter expects PointCloud2    
+-->
+<launch>
+	<node pkg="point_cloud_converter" name="point_cloud_converter" type="point_cloud_converter_node" >
+		<remap from="points_in" to="/scan"/>
+		<remap from="points2_out" to="/converted_point_cloud_2" />
+	</node>
+</launch>
