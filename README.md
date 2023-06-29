@@ -15,3 +15,7 @@ Activate virtual environment:
 Install required packages:
 
 `$ pip install -r requirements.txt`
+
+## Working with offline simulated Point Clouds
+
+Refer to this [README in order to work with simulated point clouds](https://github.com/ielson/ROSPointNet/blob/ros-integration/OfflineSimulatedPointClouds.md). A snapshot from the simulated world in Gazebo from [LaR Laboratory](https://github.com/ericksuzart/lar_gazebo) was taken and can be found in [here](https://github.com/ielson/ROSPointNet/blob/ros-integration/test_data/simulated_laboratory.pcd). 
