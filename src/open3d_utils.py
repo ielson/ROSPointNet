@@ -61,19 +61,30 @@ def pass_through_filter(boundaries: dict,
     pcd.points = o3d.utility.Vector3dVector(points[pass_through_filter])
     return pcd
 
-def preprocess_point_cloud(pcd: o3d.geometry.PointCloud) -> o3d.geometry.PointCloud:
+def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
+                           pcd_file_path: str = '',
+                           pcd_file_name: str = 'output_point_cloud.pcd',
+                           write_to_file: bool = False,
+                           verbose:bool = False) -> o3d.geometry.PointCloud:
     """
-    Preprocesses the point cloud by using a pass-through filter to remove
-    the ground plane.
+    Preprocesses the point cloud by using a pass-through filter to remove the ground plane.
+    This function has the sole purpose to be used for offline point clouds due to debugging functionalities that
+    aren't worth to be incorporated to an online scenario/function.
     """
     pcd_points = np.asarray(pcd.points)
     filter_boundaries = get_pass_through_filter_boundaries(pcd_points)
     filtered_pc = pass_through_filter(filter_boundaries, pcd_points)
+    if verbose:
+        print(f"Point cloud has {filtered_pc} points.")
+    if write_to_file:
+        o3d.io.write_point_cloud(f"{pcd_file_path}preprocessed_{pcd_file_name}", pcd)
     return filtered_pc
-    
+
 if __name__ == '__main__':
-    file_location = '../test_data/simulated_laboratory.pcd'
+    path = '../test_data/chair/'
+    file_name = 'first_snapshot.pcd'
+    file_location = f"{path}{file_name}"
     pcd = o3d.io.read_point_cloud(file_location)
 
-    #preprocessed_pc = preprocess_point_cloud(pcd)
-    visualize_pcd([pcd])
+    preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, write_to_file=True, verbose=True)
+    visualize_pcd([preprocessed_pc])
