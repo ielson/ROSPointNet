@@ -13,6 +13,13 @@ def visualize_pcd(pcd: list):
                                     lookat=[2.1813, 2.0619, 2.0999],
                                     up=[0.1204, -0.9852, 0.1215])
 
+# TODO: Use a better method for downsampling to 2048 fixed size (input that PointNet takes in)
+# uniform_down_sample?
+def downsample(pcd):
+    #print("Downsample the point cloud with a voxel of 0.05")
+    voxelized_pcd = pcd.voxel_down_sample(voxel_size=0.05)
+    return voxelized_pcd
+
 def numpy_to_o3d(np_array: np.array):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(np_array)
@@ -75,16 +82,22 @@ def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
     filter_boundaries = get_pass_through_filter_boundaries(pcd_points)
     filtered_pc = pass_through_filter(filter_boundaries, pcd_points)
     if verbose:
-        print(f"Point cloud has {filtered_pc} points.")
+        print(f"Point cloud has {filtered_pc}.")
     if write_to_file:
         o3d.io.write_point_cloud(f"{pcd_file_path}preprocessed_{pcd_file_name}", pcd)
     return filtered_pc
+
+# TODO: To be implemented so that we can filter the point cloud from distant points
+def filter_by_radius():
+    pcd_stat, ind_stat = pcd.remove_statistical_outlier(nb_neighbors=20,
+                                                 std_ratio=2.0)
+    outlier_stat_pcd = pcd.select_by_index(ind_stat, invert=True)
 
 if __name__ == '__main__':
     path = '../test_data/chair/'
     file_name = 'first_snapshot.pcd'
     file_location = f"{path}{file_name}"
     pcd = o3d.io.read_point_cloud(file_location)
-
-    preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, write_to_file=True, verbose=True)
+    pcd = downsample(pcd)
+    preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, write_to_file=False, verbose=True)
     visualize_pcd([preprocessed_pc])
