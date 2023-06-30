@@ -6,10 +6,12 @@ import tensorflow as tf
 import keras
 from keras import layers
 from matplotlib import pyplot as plt
+from keras.utils.vis_utils import plot_model
 
 tf.random.set_seed(1234)
 
 def set_dataset_directories() -> str:
+    # just dowloads if not in cache
     DATA_DIR = keras.utils.get_file(
         "modelnet.zip",
         "http://3dvision.princeton.edu/projects/2014/3DShapeNets/ModelNet10.zip",
@@ -215,7 +217,27 @@ def train_and_validate_model(epochs: int = 1,
     model = create_model(NUM_POINTS, NUM_CLASSES)
 
     # Trains model
-    model.fit(train_dataset, epochs=epochs, validation_data=test_dataset)
+    history = model.fit(train_dataset, epochs=epochs, validation_data=test_dataset)
+
+    # view model design
+    plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+
+    # view loss function and acuracy as time passes 
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
+
 
     # Saving the weights from training
     model.save_weights('../pointnet_network_config/weights/modelnet10_weights.h5')
@@ -247,6 +269,6 @@ def train_and_validate_model(epochs: int = 1,
         plt.show()
 
 if __name__ == "__main__":
-    #train_and_validate_model()
-    test_trained_model()
+    train_and_validate_model()
+    # test_trained_model()
 
