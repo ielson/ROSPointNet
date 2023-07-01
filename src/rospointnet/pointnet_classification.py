@@ -150,23 +150,16 @@ def create_model(num_points: int, num_classes: int):
     )
     return model
 
-def test_trained_model():
+def test_trained_model(test_dataset, model, classmap):
     """
     Loads a model that has already been trained and tests it on a validation test set.
     """
-    # Loads test data
-    DATA_DIR = set_dataset_directories()
-    NUM_POINTS = 2048
-    BATCH_SIZE = 32
-    NUM_CLASSES = 10
-    _, test_points, _, test_labels, CLASS_MAP = parse_dataset(DATA_DIR, NUM_POINTS)
-    test_dataset = tf.data.Dataset.from_tensor_slices((test_points, test_labels))
-    test_dataset = test_dataset.shuffle(len(test_points)).batch(BATCH_SIZE)
 
-    # Create a new model instance
-    model = create_model(NUM_POINTS, NUM_CLASSES)
-
-    model.load_weights('../pointnet_network_config/weights/modelnet10_weights.h5')
+    CLASS_MAP = classmap
+    
+    print("loading weights")
+    model.load_weights('../../pointnet_network_config/weights/modelnet10_weights.h5')
+    print("weights loaded")
 
     # Tests model
     data = test_dataset.take(1)
@@ -193,6 +186,7 @@ def test_trained_model():
         )
         ax.set_axis_off()
     plt.show()
+    
 
     return model, CLASS_MAP
 
@@ -278,6 +272,6 @@ def validate_model(test_dataset, model, class_map, test_model: bool = True):
         plt.show()
 
 if __name__ == "__main__":
-    train_and_validate_model()
-    # test_trained_model()
+    #train_and_validate_model()
+    test_trained_model()
 
