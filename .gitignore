@@ -2,7 +2,7 @@
 tf/
 
 #mac folders info
-.DS_Store/
+.DS_Store
 
 # dans notes file 
 selfnotes.txt
