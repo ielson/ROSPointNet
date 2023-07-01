@@ -48,6 +48,7 @@ def parse_dataset(data_dir: str,
         print("processing class: {}".format(os.path.basename(folder)))
         # store folder name with ID so we can retrieve later
         class_map[i] = folder.split("/")[-1]
+        print("class map:" + class_map[i])
         # gather all files
         train_files = glob.glob(os.path.join(folder, "train/*"))
         test_files = glob.glob(os.path.join(folder, "test/*"))
@@ -193,8 +194,9 @@ def test_trained_model():
         ax.set_axis_off()
     plt.show()
 
-def train_and_validate_model(epochs: int = 1,
-        test_model: bool = True):
+    return model, CLASS_MAP
+
+def locate_and_parse_dataset():
     
     # Checking if GPU is enabled
     print(f"\n\nGPU usage is set to : {tf.test.is_built_with_cuda()}.")
@@ -214,36 +216,43 @@ def train_and_validate_model(epochs: int = 1,
     test_dataset = tf.data.Dataset.from_tensor_slices((test_points, test_labels))
     test_dataset = test_dataset.shuffle(len(test_points)).batch(BATCH_SIZE)
 
-    model = create_model(NUM_POINTS, NUM_CLASSES)
+    return train_dataset, test_dataset, NUM_POINTS, NUM_CLASSES, CLASS_MAP
 
-    # Trains model
+def train_model(train_dataset, test_dataset, model, epochs: int =1, plot_model: bool = False):
     history = model.fit(train_dataset, epochs=epochs, validation_data=test_dataset)
+    if plot_model:
+        plot_model(model,to_file='model_plot.png', show_shapes=True, show_layer_names=True )
+    return history
 
-    # view model design
-    plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+
+def plot_history(history):
+    print(history.history.keys())
 
     # view loss function and acuracy as time passes 
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
+    plt.plot(history.history['sparse_categorical_accuracy'])
+    plt.plot(history.history['val_sparse_categorical_accuracy'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
     plt.show()
     plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
+    # plt.plot(history.history['val_loss'])
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
+    plt.legend(['train', 'validation'], loc='upper left')
     plt.show()
 
 
-    # Saving the weights from training
+
+def save_weights():
     model.save_weights('../pointnet_network_config/weights/modelnet10_weights.h5')
 
+def validate_model(test_dataset, model, class_map, test_model: bool = True):
     if test_model:
         data = test_dataset.take(1)
+        CLASS_MAP = class_map
 
         points, labels = list(data)[0]
         points = points[:8, ...]
