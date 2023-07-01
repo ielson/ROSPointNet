@@ -7,15 +7,26 @@ def visualize_pcd(pcd: list):
     pcd: list. Must be passed in a list format, if wished multiple
     point clouds can be passe.  
     """
-    o3d.visualization.draw_geometries(pcd,
+    viewer = o3d.visualization.Visualizer()
+    viewer.create_window()
+    geometries = [pcd]
+    for geometry in pcd:
+        viewer.add_geometry(geometry)
+    opt = viewer.get_render_option()
+    opt.show_coordinate_frame = True
+    #opt.background_color = np.asarray([0.5, 0.5, 0.5])
+    #viewer.destroy_window()
+    """o3d.visualization.draw_geometries(pcd,
                                     zoom=0.49,
                                     front=[-0.4999, -0.1659, -0.8499],
                                     lookat=[2.1813, 2.0619, 2.0999],
-                                    up=[0.1204, -0.9852, 0.1215])
-
+                                    up=[0.1204, -0.9852, 0.1215])"""
+    
+    viewer.run()
+    viewer.destroy_window()
 # TODO: Use a better method for downsampling to 2048 fixed size (input that PointNet takes in)
 # uniform_down_sample?
-def downsample(pcd):
+def voxelgrid_downsampling(pcd):
     #print("Downsample the point cloud with a voxel of 0.05")
     voxelized_pcd = pcd.voxel_down_sample(voxel_size=0.05)
     return voxelized_pcd
@@ -25,8 +36,20 @@ def numpy_to_o3d(np_array: np.array):
     pcd.points = o3d.utility.Vector3dVector(np_array)
     return pcd
 
+def create_point_cloud_from_bbox_vertices(pcd: o3d.geometry.PointCloud):
+    """
+    Draws bounding box out of the input point cloud. 
+    """
+    #pcd_points = np.asarray(pcd.points)
+    #pc_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(pcd_points)
+    
+    bb = pcd.get_axis_aligned_bounding_box()
+    return bb
+
 def get_pass_through_filter_boundaries(point_cloud_points: np.array,
-                                       # 0.08cm offset
+                                       x_offset: float = 0.0,
+                                       y_offset: float = 0.0,
+                                       # 8 cm offset
                                        z_offset_ground_removal = 0.08):
     """
     Based on the input point cloud, get min and max of each dimension (XYZ) and adds
@@ -41,10 +64,9 @@ def get_pass_through_filter_boundaries(point_cloud_points: np.array,
     x_max, y_max, z_max = point_cloud_points.max(axis=0)
     x_min, y_min, z_min = point_cloud_points.min(axis=0)
     
-
     filter_boundaries = {
-        "x": [x_min, x_max],
-        "y": [y_min, y_max],
+        "x": [x_min, x_max - x_offset],
+        "y": [y_min, y_max - y_offset],
         "z": [z_min + z_offset_ground_removal, z_max]
     }
 
@@ -68,9 +90,18 @@ def pass_through_filter(boundaries: dict,
     pcd.points = o3d.utility.Vector3dVector(points[pass_through_filter])
     return pcd
 
+def filter_pc_by_radius(pcd: o3d.geometry.PointCloud,
+                        sphere_radius: float = 1.0):
+    print(f"Using radius filtering of: {sphere_radius}")
+    raw_pcd, inlier_pc_indexes = pcd.remove_radius_outlier(nb_points=16, radius=sphere_radius)
+    pcd = raw_pcd.select_by_index(inlier_pc_indexes)
+    return pcd
+
 def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
                            pcd_file_path: str = '',
                            pcd_file_name: str = 'output_point_cloud.pcd',
+                           downsampling: bool = False,
+                           radius_filtering: bool = False,
                            write_to_file: bool = False,
                            verbose:bool = False) -> o3d.geometry.PointCloud:
     """
@@ -79,25 +110,27 @@ def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
     aren't worth to be incorporated to an online scenario/function.
     """
     pcd_points = np.asarray(pcd.points)
-    filter_boundaries = get_pass_through_filter_boundaries(pcd_points)
-    filtered_pc = pass_through_filter(filter_boundaries, pcd_points)
+    # Used an offset of 0.3m so that objects too far away are disregarded
+    filter_boundaries = get_pass_through_filter_boundaries(pcd_points, x_offset=0.3 ,y_offset=1.0)
+    pcd = pass_through_filter(filter_boundaries, pcd_points)
+    if downsampling:
+        pcd = voxelgrid_downsampling(pcd)
+    if radius_filtering:
+        sphere_radius = 0.1
+        pcd = filter_pc_by_radius(pcd, sphere_radius)
     if verbose:
-        print(f"Point cloud has {filtered_pc}.")
+        print(f"Point cloud has {pcd}.")
+
     if write_to_file:
         o3d.io.write_point_cloud(f"{pcd_file_path}preprocessed_{pcd_file_name}", pcd)
-    return filtered_pc
+    return pcd
 
-# TODO: To be implemented so that we can filter the point cloud from distant points
-def filter_by_radius():
-    pcd_stat, ind_stat = pcd.remove_statistical_outlier(nb_neighbors=20,
-                                                 std_ratio=2.0)
-    outlier_stat_pcd = pcd.select_by_index(ind_stat, invert=True)
 
 if __name__ == '__main__':
     path = '../test_data/chair/'
     file_name = 'first_snapshot.pcd'
     file_location = f"{path}{file_name}"
     pcd = o3d.io.read_point_cloud(file_location)
-    pcd = downsample(pcd)
-    preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, write_to_file=False, verbose=True)
-    visualize_pcd([preprocessed_pc])
+    preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, radius_filtering=False, write_to_file=True, verbose=True)
+    bounding_box = create_point_cloud_from_bbox_vertices(preprocessed_pc)
+    visualize_pcd([preprocessed_pc, bounding_box])
