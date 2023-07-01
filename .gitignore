@@ -4,6 +4,9 @@ tf/
 #mac folders info
 .DS_Store
 
+# test files
+preprocessed_first_snapshot.pcd
+
 # dans notes file 
 selfnotes.txt
 
