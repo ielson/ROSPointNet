@@ -157,9 +157,7 @@ def test_trained_model(test_dataset, model, classmap):
 
     CLASS_MAP = classmap
     
-    print("loading weights")
-    model.load_weights('../../pointnet_network_config/weights/modelnet10_weights.h5')
-    print("weights loaded")
+
 
     # Tests model
     data = test_dataset.take(1)
@@ -174,6 +172,7 @@ def test_trained_model(test_dataset, model, classmap):
 
     points = points.numpy()
 
+    print("starting to plot")
     # plot points with predicted class and label
     fig = plt.figure(figsize=(15, 10))
     for i in range(8):
@@ -186,6 +185,7 @@ def test_trained_model(test_dataset, model, classmap):
         )
         ax.set_axis_off()
     plt.show()
+    print('after plot')
     
 
     return model, CLASS_MAP
