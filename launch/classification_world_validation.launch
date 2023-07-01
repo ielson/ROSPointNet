@@ -2,7 +2,7 @@
 <launch>
 
     <!-- Launches LaR world in Gazebo -->
-    <arg name="world_name" default="$(find rospointnet)/worlds/classification_valid_world.sdf"/>
+    <arg name="world_name" default="$(find rospointnet)/worlds/new_world.world"/>
 
     <!-- Launches Livox Simulated Sensor -->
     <arg name="livox_sensor" default="$(find livox_laser_simulation)/urdf/livox_mid70.xacro" />
@@ -32,7 +32,5 @@
 	</node>
 
     <!-- Uncomment the line below if wished to see the sensor output in RViz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find livox_laser_simulation)/rviz/livox_simulation.rviz"/> 
-    
-
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find livox_laser_simulation)/rviz/livox_simulation.rviz"/> -->
 </launch>
