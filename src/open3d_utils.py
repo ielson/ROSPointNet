@@ -82,13 +82,14 @@ def concatenate_multiple_pcds(list_of_pcd,
     print(f"Wrote merged PCD to {output_file_name}")
     return output_file_name
 
-def read_and_merge_pcd(test_data_path: str
+def read_and_merge_pcd(test_data_path: str,
+                       output_name: str
                        ):
     # Adapting for local testing (i.e. reading the PCL as a file, not from ROS)
     list_of_files_path = read_point_cloud_files(test_data_path)
     # TODO: Use try/exception
     if list_of_files_path:
-        concatenated_pcd_path = concatenate_multiple_pcds(list_of_files_path)
+        concatenated_pcd_path = concatenate_multiple_pcds(list_of_files_path, output_name)
         print(f"Reading: {concatenated_pcd_path}")
         pcd = o3d.io.read_point_cloud(concatenated_pcd_path)
         return pcd
@@ -264,17 +265,17 @@ def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
 if __name__ == '__main__':
 
     # Path used for the pcd concatenation function
-    path = '../test_data/wardrobe/angle3/'
+    path = '../test_data/table/angle2/'
 
     # File name used for the preprocess function
     file_name = 'concatenated_pc.pcd'
     file_location = f"{path}{file_name}"
 
     # Change this flag to True to take a bunch of pcd files generated from ROS and concatenate them into one
-    MERGE_PCD = False
+    MERGE_PCD = True
 
     if MERGE_PCD:
-        pcd = read_and_merge_pcd(path)
+        pcd = read_and_merge_pcd(path, file_name)
     else:
         pcd = o3d.io.read_point_cloud(file_location)
         preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, radius_filtering=False, write_to_file=True, verbose=True)
