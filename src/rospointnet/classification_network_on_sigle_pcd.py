@@ -1,10 +1,12 @@
 
 from pointnet_classification import set_network_input_parameters, locate_and_parse_dataset, test_trained_model, create_model
+from pointnet_classification import set_dataset_directories, open_a_mesh_from_dataset
 from pyntcloud import PyntCloud
 import tensorflow as tf
 from os import path
 import open3d as o3d    
 import numpy as np
+
 
 def visualize_pcd(pcd: list):
     """
@@ -112,20 +114,44 @@ def convert_pc_to_tensor(
 
     return pc_as_tensor
 
+def get_one_point_cloud_from_dataset(test_dataset, classmap):
+    """
+    Gets one model from test dataset only.
+    """
+    
+    # Slices model
+    data = test_dataset.take(1)
+
+    points, labels = list(data)[0]
+    points = points[:8, ...]
+    labels = labels[:8, ...]
 
 if __name__ == "__main__":
-    # Assuming model has to be created because we just saved the trained weights
 
+    # Assuming model has to be created because we just saved the trained weights
+    # Loads weights and instantiates model
     WEIGHTS_PATH = '../../pointnet_network_config/weights/modelnet10_weights.h5'
+    NUM_POINTS, NUM_CLASSES, BATCH_SIZE = set_network_input_parameters()
+    model = create_model(NUM_POINTS, NUM_CLASSES)
+    model.load_weights(WEIGHTS_PATH)
+
+    # -------------- Use this to test the Modelnet10 dataset -------------------
+    # Loads dataset
+    using_modelnet10 = True
+    if using_modelnet10:
+        train_set, test_set, CLASS_MAP = locate_and_parse_dataset(NUM_POINTS= 2048,
+                                NUM_CLASSES = 10,
+                                BATCH_SIZE = 32)
+
+        get_one_point_cloud_from_dataset(test_set, CLASS_MAP)
+
+
+
+    # ------------- Use this when using single pcd files ----------------
+
     POINT_CLOUD_FILE_ROOT_PATH = '../../test_data/'
     PC_FILE = 'airplane.pcd'
     pc_full_path = path.join(POINT_CLOUD_FILE_ROOT_PATH, PC_FILE)
-
-    NUM_POINTS, NUM_CLASSES, BATCH_SIZE = set_network_input_parameters()
-
-    model = create_model(NUM_POINTS, NUM_CLASSES)
-
-    model.load_weights(WEIGHTS_PATH)
 
     # Testing for a single point cloud on the trained net
     input_point_cloud = open_up_pcd_file(pc_full_path, NUM_POINTS, adjust_pc_shape=True, visualize=True)
@@ -144,14 +170,3 @@ if __name__ == "__main__":
     # formato: tf.Tensor: shape=(1,), dtype=int64, numpy=array([0]
     pred.numpy()[0]
     """
-
-
-
-
-
-# Loads dataset
-"""train_set, test_set, CLASS_MAP = locate_and_parse_dataset(NUM_POINTS= 2048,
-                            NUM_CLASSES = 10,
-                            BATCH_SIZE = 32)
-
-test_trained_model(test_set, model, CLASS_MAP)"""
