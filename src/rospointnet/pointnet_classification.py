@@ -145,7 +145,7 @@ def create_model(num_points: int, num_classes: int):
     model.summary()
     model.compile(
         loss="sparse_categorical_crossentropy",
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        optimizer= tf.keras.optimizers.Adam(learning_rate=0.001),
         metrics=["sparse_categorical_accuracy"],
     )
     return model
@@ -157,9 +157,7 @@ def test_trained_model(test_dataset, model, classmap):
 
     CLASS_MAP = classmap
     
-
-
-    # Tests model
+    # Slices model
     data = test_dataset.take(1)
 
     points, labels = list(data)[0]
@@ -190,15 +188,32 @@ def test_trained_model(test_dataset, model, classmap):
 
     return model, CLASS_MAP
 
-def locate_and_parse_dataset():
-    
+def set_network_input_parameters(
+                            NUM_POINTS: int = 2048,
+                            NUM_CLASSES: int = 10,
+                            BATCH_SIZE: int = 32
+        ):
+    return NUM_POINTS, NUM_CLASSES, BATCH_SIZE
+
+def locate_and_parse_dataset(
+                                DATA_DIR: str = '',
+                                NUM_POINTS: int = 2048,
+                                NUM_CLASSES: int = 10,
+                                BATCH_SIZE: int = 32
+):
+    """
+    Parses Modelnet10 dataset, shuffles it to augment the data randomly to create the train and test sets
+    based on input parameters:
+
+    Args:
+    - NUM_POINTS: int. Point Cloud should be transformed to this dimension.
+    - NUM_CLASSES: int. Number of classes that will be trained.
+    - BATCH_SIZE: int. Size of traianing batch.
+    """
     # Checking if GPU is enabled
     print(f"\n\nGPU usage is set to : {tf.test.is_built_with_cuda()}.")
 
     DATA_DIR = set_dataset_directories()
-    NUM_POINTS = 2048
-    NUM_CLASSES = 10
-    BATCH_SIZE = 32
 
     train_points, test_points, train_labels, test_labels, CLASS_MAP = parse_dataset(
         DATA_DIR, NUM_POINTS
@@ -210,14 +225,17 @@ def locate_and_parse_dataset():
     test_dataset = tf.data.Dataset.from_tensor_slices((test_points, test_labels))
     test_dataset = test_dataset.shuffle(len(test_points)).batch(BATCH_SIZE)
 
-    return train_dataset, test_dataset, NUM_POINTS, NUM_CLASSES, CLASS_MAP
+    return train_dataset, test_dataset, CLASS_MAP
 
-def train_model(train_dataset, test_dataset, model, epochs: int =1, plot_model: bool = False):
+def train_model(train_dataset,
+                test_dataset,
+                model,
+                epochs: int = 1,
+                plot_model:bool = False):
     history = model.fit(train_dataset, epochs=epochs, validation_data=test_dataset)
     if plot_model:
         plot_model(model,to_file='model_plot.png', show_shapes=True, show_layer_names=True )
     return history
-
 
 def plot_history(history):
     print(history.history.keys())
@@ -237,8 +255,6 @@ def plot_history(history):
     plt.xlabel('epoch')
     plt.legend(['train', 'validation'], loc='upper left')
     plt.show()
-
-
 
 def save_weights():
     model.save_weights('../pointnet_network_config/weights/modelnet10_weights.h5')
