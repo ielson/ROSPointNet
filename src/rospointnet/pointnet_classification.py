@@ -3,10 +3,16 @@ import glob
 import trimesh
 import numpy as np
 import tensorflow as tf
-import keras
+
+# Makes a difference to import keras while using keras utils
+import tensorflow.keras as keras
 from keras import layers
 from matplotlib import pyplot as plt
 from keras.utils.vis_utils import plot_model
+
+"""import segmentation_models as sm
+sm.set_framework('tf.keras')
+sm.framework()"""
 
 tf.random.set_seed(1234)
 
@@ -18,6 +24,7 @@ def set_dataset_directories() -> str:
         extract=True,
     )
     DATA_DIR = os.path.join(os.path.dirname(DATA_DIR), "ModelNet10")
+    print(f"Data directory is set to: {DATA_DIR}")
     return DATA_DIR
 
 def open_a_mesh_from_dataset(data_dir: str):
@@ -26,7 +33,6 @@ def open_a_mesh_from_dataset(data_dir: str):
 
     # TODO: Compare downsampling from Open3D with trimesh's sampling.
     points = mesh.sample(2048)
-
 
     fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot(111, projection="3d")
@@ -256,7 +262,7 @@ def plot_history(history):
     plt.legend(['train', 'validation'], loc='upper left')
     plt.show()
 
-def save_weights():
+def save_weights(model):
     model.save_weights('../pointnet_network_config/weights/modelnet10_weights.h5')
 
 def validate_model(test_dataset, model, class_map, test_model: bool = True):
@@ -288,6 +294,8 @@ def validate_model(test_dataset, model, class_map, test_model: bool = True):
         plt.show()
 
 if __name__ == "__main__":
+    train_set, test_set, class_map = locate_and_parse_dataset()
+    
     #train_and_validate_model()
-    test_trained_model()
+    #test_trained_model()
 
