@@ -60,3 +60,77 @@ def tnet(inputs, num_features):
     # Apply affine transformation to input features
     return layers.Dot(axes=(2, 1))([inputs, feat_T])
 
+def pointnetBackbone(num_points: int, num_classes: int, segmentation: bool = False):
+    """
+    This is the main part of the pointnet, before the classification or segmentation heads.
+    It obtains the local and global features, that will be passed to the heads depending in what is asked
+
+    """
+    inputs = keras.Input(shape=(num_points, 3))
+
+    # input transform
+    x = tnet(inputs, 3)
+
+    # shared MLP 1
+    x = conv_bn(x, 64)
+    x = conv_bn(x, 64)
+    
+    # feature transform
+    x = tnet(x, 64)
+    
+    # store local features for segmentation head
+    # not sure if this clone works
+    local_features = x.clone()
+    
+    # shared MLP 2
+    x = conv_bn(x, 64)
+    x = conv_bn(x, 128)
+    x = conv_bn(x, 1024)
+
+    # antigo comentado
+    # x = layers.GlobalMaxPooling1D()(x)
+    global_features = layers.GlobalMaxPooling1D()(x)
+    print("Global features shape: {}".format(global_features.shape))
+    # codigo faz isso 
+    # global_features = global_features.view(bs, -1)
+
+    if segmentation:
+        # features = torch.cat((local_features, global_features.unsqueeze(-1).repeat(1, 1, self.num_points)), dim=1)
+        return features, inputs # he alse returns the second t-net (feature transform)
+    else:
+        return global_features, inputs # he alse returns the second t-net (feature transform)
+
+
+    """
+    x = dense_bn(x, 512)
+    x = layers.Dropout(0.3)(x)
+    x = dense_bn(x, 256)
+    x = layers.Dropout(0.3)(x)
+
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+
+    model = keras.Model(inputs=inputs, outputs=outputs, name="pointnet")
+    model.summary()
+    model.compile(
+        loss="sparse_categorical_crossentropy",
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        metrics=["sparse_categorical_accuracy"],
+    )
+    
+    return model
+    """
+
+def pointnetClassificationHead(num_points: int, num_classes: int):
+
+    # first we need to get the backbone
+    # self.backbone = PointNetBackbone(num_points, num_global_feats, local_feat=False)
+
+    # MLP for classification
+    x = dense_bn(x, 512)
+    # why do we use a dropout here?
+    x = layers.Dropout(0.3)(x)
+    x = dense_bn(x, 256)
+    # in the other example theres just one dropout layer here
+    x = layers.Dropout(0.3)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+    return outputs
