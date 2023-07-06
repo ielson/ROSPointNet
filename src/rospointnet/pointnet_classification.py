@@ -6,7 +6,8 @@ import tensorflow as tf
 import keras
 from keras import layers
 from matplotlib import pyplot as plt
-from keras.utils.vis_utils import plot_model
+# from keras.utils.vis_utils import plot_model
+from keras.utils import plot_model
 
 tf.random.set_seed(1234)
 
@@ -156,8 +157,6 @@ def test_trained_model(test_dataset, model, classmap):
     """
 
     CLASS_MAP = classmap
-    
-
 
     # Tests model
     data = test_dataset.take(1)
@@ -183,7 +182,7 @@ def test_trained_model(test_dataset, model, classmap):
                 CLASS_MAP[preds[i].numpy()], CLASS_MAP[labels.numpy()[i]]
             )
         )
-        ax.set_axis_off()
+        # ax.set_axis_off()
     plt.show()
     print('after plot')
     
