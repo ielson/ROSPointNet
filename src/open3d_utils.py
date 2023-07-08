@@ -120,20 +120,29 @@ def voxelgrid_downsampling(pcd):
     voxelized_pcd = pcd.voxel_down_sample(voxel_size=0.05)
     return voxelized_pcd
 
-def numpy_to_o3d(np_array: np.array):
+def numpy_to_o3dpc(np_array: np.ndarray):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(np_array)
-    return pcd
+    return pcd, pcd.points
 
-def create_point_cloud_from_bbox_vertices(pcd: o3d.geometry.PointCloud):
+def get_pc_centroid(pcd: o3d.geometry.PointCloud):
     """
-    Draws bounding box out of the input point cloud. 
+    Gets the centroid from the given point cloud.
     """
-    #pcd_points = np.asarray(pcd.points)
-    #pc_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(pcd_points)
-    
-    bb = pcd.get_axis_aligned_bounding_box()
-    return bb
+    centroid_points = pcd.get_center()
+    centroid_points_reshaped = centroid_points.reshape(1, 3)
+    pc_centroid_o3d, pc_centroid_points = numpy_to_o3dpc(centroid_points_reshaped)
+    # TODO: Transform from PointCloud to Mesh to use the function
+    #open3d.geometry.create_mesh_coordinate_frame
+    centroid_coordinate_frame = o3d.geometry.TriangleMesh().create_coordinate_frame(size=0.3, origin=centroid_points.tolist())
+    #mesh.vertices = o3d.utility.Vector3dVector(np.array([centroid_points]))
+    #mesh.create_coordinate_frame()
+    return centroid_points, pc_centroid_o3d, centroid_coordinate_frame
+
+def transform_to_origin_frame():
+    """
+    Based on the lidar sensor frame, transforms the current points to the origin frame.
+    """
 
 def get_pass_through_filter_boundaries(point_cloud_points: np.array,
                                        x_offset: float = 0.0,
@@ -234,13 +243,28 @@ def filter_pc_by_radius(pcd: o3d.geometry.PointCloud,
     pcd = raw_pcd.select_by_index(inlier_pc_indexes)
     return pcd
 
+def get_cropping_bounding_box_from_pc(pcd: o3d.geometry.PointCloud):
+    bb = pcd.get_axis_aligned_bounding_box()
+    bb_limits = bb.get_box_points()
+    bb_limits = np.asarray(bb_limits)
+    # Adds offset to the X component so that the bounding box excludes the points
+    bb_limits[bb_limits == 0.0] = 0.05
+    bb = o3d.geometry.AxisAlignedBoundingBox.create_from_points(o3d.utility.Vector3dVector (bb_limits))
+    bb.color = [0.0, 0.0, 0.1]
+    return bb
+
+def crop_pc_from_bounding_box(pcd: o3d.geometry.PointCloud,
+                              bounding_box: o3d.geometry.AxisAlignedBoundingBox):
+    return pcd.crop(bounding_box)
+
 def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
                            pcd_file_path: str = '',
-                           pcd_file_name: str = 'output_point_cloud.pcd',
+                           pcd_file_name: str = 'translated_pc.pcd',
                            downsampling: bool = False,
+                           crop_pc: bool = False,
                            radius_filtering: bool = False,
                            write_to_file: bool = False,
-                           verbose:bool = False) -> o3d.geometry.PointCloud:
+                           verbose: bool = False) -> o3d.geometry.PointCloud:
     """
     Preprocesses the point cloud by using a pass-through filter to remove the ground plane.
     This function has the sole purpose to be used for offline point clouds due to debugging functionalities that
@@ -252,6 +276,9 @@ def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
     pcd = pass_through_filter(filter_boundaries, pcd_points)
     if downsampling:
         pcd = voxelgrid_downsampling(pcd)
+    if crop_pc:
+        bounding_box = get_cropping_bounding_box_from_pc(pcd)
+        pcd = crop_pc_from_bounding_box(pcd, bounding_box)
     if radius_filtering:
         sphere_radius = 0.1
         pcd = filter_pc_by_radius(pcd, sphere_radius)
@@ -259,7 +286,9 @@ def preprocess_point_cloud_offline(pcd: o3d.geometry.PointCloud,
         print(f"Point cloud has {pcd}.")
 
     if write_to_file:
-        o3d.io.write_point_cloud(f"{pcd_file_path}preprocessed_{pcd_file_name}", pcd)
+        output_path = f"{pcd_file_path}preprocessed_{pcd_file_name}"
+        o3d.io.write_point_cloud(output_path, pcd)
+        print(f"Point cloud saved to: {output_path}")
     return pcd
 
 if __name__ == '__main__':
@@ -272,16 +301,22 @@ if __name__ == '__main__':
     file_location = f"{path}{file_name}"
 
     # Change this flag to True to take a bunch of pcd files generated from ROS and concatenate them into one
-    MERGE_PCD = True
+    MERGE_PCD = False
 
     if MERGE_PCD:
         pcd = read_and_merge_pcd(path, file_name)
     else:
         pcd = o3d.io.read_point_cloud(file_location)
-        preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, radius_filtering=False, write_to_file=True, verbose=True)
-        bounding_box = create_point_cloud_from_bbox_vertices(preprocessed_pc)
+        preprocessed_pc = preprocess_point_cloud_offline(pcd, path, file_name, crop_pc=True , radius_filtering=False, write_to_file=True, verbose=True)
 
-    visualize_pcd([pcd])
+        # We'll get the centroid only if the Point cloud is completely filtered.
+        pc_centroid_points, pc_centroid_o3d, centroid_coordinate_frame = get_pc_centroid(preprocessed_pc)
+        
+        # Translates the whole point cloud with respect to the new origin frame
+        preprocessed_pc_t = preprocessed_pc.translate(-pc_centroid_points)
+
+
+    visualize_pcd([preprocessed_pc_t, pc_centroid_o3d, centroid_coordinate_frame])
 
     """new_data = np.concatenate((new_pos, new_col),axis = 1)
     guild_points = o3d.geometry.PointCloud()
