@@ -79,38 +79,6 @@ def augment(points, label):
 
 
 
-
-
-def create_model(num_points: int, num_classes: int):
-    """
-    Creates a PointNet Model.
-    """
-    inputs = keras.Input(shape=(num_points, 3))
-
-    x = tnet(inputs, 3)
-    x = conv_bn(x, 32)
-    x = conv_bn(x, 32)
-    x = tnet(x, 32)
-    x = conv_bn(x, 32)
-    x = conv_bn(x, 64)
-    x = conv_bn(x, 512)
-    x = layers.GlobalMaxPooling1D()(x)
-    x = dense_bn(x, 256)
-    x = layers.Dropout(0.3)(x)
-    x = dense_bn(x, 128)
-    x = layers.Dropout(0.3)(x)
-
-    outputs = layers.Dense(num_classes, activation="softmax")(x)
-
-    model = keras.Model(inputs=inputs, outputs=outputs, name="pointnet")
-    model.summary()
-    model.compile(
-        loss="sparse_categorical_crossentropy",
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
-        metrics=["sparse_categorical_accuracy"],
-    )
-    return model
-
 def test_trained_model(test_dataset, model, classmap):
     """
     Loads a model that has already been trained and tests it on a validation test set.

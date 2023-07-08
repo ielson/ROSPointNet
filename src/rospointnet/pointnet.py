@@ -56,17 +56,20 @@ def tnet(inputs, num_features):
         bias_initializer=bias,
         activity_regularizer=reg,
     )(x)
+    print("tnet shape: {}".format(x))
+    # TODO plot pointcloud rotated by tnet
     feat_T = layers.Reshape((num_features, num_features))(x)
     # Apply affine transformation to input features
     return layers.Dot(axes=(2, 1))([inputs, feat_T])
 
-def pointnetBackbone(num_points: int, num_classes: int, segmentation: bool = False):
+def backbone(num_points: int, num_classes: int, segmentation: bool = False):
     """
     This is the main part of the pointnet, before the classification or segmentation heads.
     It obtains the local and global features, that will be passed to the heads depending in what is asked
 
     """
     inputs = keras.Input(shape=(num_points, 3))
+    print("shape of inputs: {}".format(inputs.shape))
 
     # input transform
     x = tnet(inputs, 3)
@@ -80,7 +83,8 @@ def pointnetBackbone(num_points: int, num_classes: int, segmentation: bool = Fal
     
     # store local features for segmentation head
     # not sure if this clone works
-    local_features = x.clone()
+    local_features = tf.identity(x)
+    
     
     # shared MLP 2
     x = conv_bn(x, 64)
@@ -90,7 +94,10 @@ def pointnetBackbone(num_points: int, num_classes: int, segmentation: bool = Fal
     # antigo comentado
     # x = layers.GlobalMaxPooling1D()(x)
     global_features = layers.GlobalMaxPooling1D()(x)
+    # TODO return the skeleton (critical points) that comes from max pooling - are they the global features?
     print("Global features shape: {}".format(global_features.shape))
+    #We refer to the global feature indices as the critical indices, since they index the points that are critical to the overall shape and structure of the point cloud.
+
     # codigo faz isso 
     # global_features = global_features.view(bs, -1)
 
@@ -125,6 +132,10 @@ def pointnetClassificationHead(num_points: int, num_classes: int):
     # first we need to get the backbone
     # self.backbone = PointNetBackbone(num_points, num_global_feats, local_feat=False)
 
+    backbone_output, inputs = backbone(num_points, num_classes, segmentation=False)
+
+    x = backbone_output
+    print("backbone output type: {}".format(type(x)))
     # MLP for classification
     x = dense_bn(x, 512)
     # why do we use a dropout here?
@@ -133,4 +144,6 @@ def pointnetClassificationHead(num_points: int, num_classes: int):
     # in the other example theres just one dropout layer here
     x = layers.Dropout(0.3)(x)
     outputs = layers.Dense(num_classes, activation="softmax")(x)
-    return outputs
+    
+    model = keras.Model(inputs=inputs, outputs=outputs, name="pointnet")
+    return model
