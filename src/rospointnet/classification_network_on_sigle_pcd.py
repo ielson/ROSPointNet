@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     # -------------- Use this to test the Modelnet10 dataset -------------------
     # Loads dataset
-    using_modelnet10 = True
+    using_modelnet10 = False
     if using_modelnet10:
         train_set, test_set, CLASS_MAP = locate_and_parse_dataset(NUM_POINTS= 2048,
                                 NUM_CLASSES = 10,
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     # ------------- Use this when using single pcd files ----------------
 
     POINT_CLOUD_FILE_ROOT_PATH = '../../test_data/'
-    PC_FILE = 'airplane.pcd'
+    PC_FILE = 'preprocessed_concatenated_pc.pcd'
     pc_full_path = path.join(POINT_CLOUD_FILE_ROOT_PATH, PC_FILE)
 
     # Testing for a single point cloud on the trained net
